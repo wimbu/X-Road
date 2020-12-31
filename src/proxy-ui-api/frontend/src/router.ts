@@ -23,7 +23,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-import Router, { NavigationGuard, Route } from 'vue-router';
+import Router, { NavigationGuardNext, Route } from 'vue-router';
 import { sync } from 'vuex-router-sync';
 import TabsBase from '@/components/layout/TabsBase.vue';
 import AppLogin from '@/views/AppLogin.vue';
@@ -69,11 +69,6 @@ import CreateApiKeyStepper from '@/views/KeysAndCertificates/ApiKey/CreateApiKey
 import ServiceClientAccessRights from '@/views/Clients/ServiceClients/ServiceClientAccessRights.vue';
 import InitialConfiguration from '@/views/InitialConfiguration/InitialConfiguration.vue';
 import AddServiceClientAccessRights from '@/views/Clients/ServiceClients/AddServiceClientAccessRightsWizard.vue';
-
-// At the moment the vue router does not have a type for Next.
-// Using this solution was recommended in a github comment:
-// https://github.com/vuejs/vue-router/pull/2497#issuecomment-474010032
-type Next = Parameters<NavigationGuard>[2];
 
 const router = new Router({
   routes: [
@@ -465,7 +460,7 @@ const router = new Router({
   ],
 });
 
-router.beforeEach((to: Route, from: Route, next: Next) => {
+router.beforeEach((to: Route, from: Route, next: NavigationGuardNext) => {
   // Going to login
   if (to.name === RouteName.Login) {
     next();
