@@ -63,7 +63,6 @@ export default Vue.extend({
           to: {
             name: RouteName.SystemParameters,
           },
-          permissions: [Permissions.VIEW_SYS_PARAMS],
         },
         {
           key: 'backup',
@@ -71,7 +70,6 @@ export default Vue.extend({
           to: {
             name: RouteName.BackupAndRestore,
           },
-          permissions: [Permissions.BACKUP_CONFIGURATION],
         },
       ];
       return this.$store.getters.getAllowedTabs(allTabs);

@@ -26,6 +26,7 @@
 import axiosAuth from '../../axios-auth';
 import axios from 'axios';
 import { ActionTree, GetterTree, Module, MutationTree } from 'vuex';
+import { RouteConfig } from 'vue-router';
 import { RootState } from '../types';
 import {
   InitializationStatus,
@@ -36,7 +37,12 @@ import {
 } from '@/openapi-types';
 import { Tab } from '@/ui-types';
 import { mainTabs } from '@/global';
+import { routes } from '@/router';
 import i18n from '@/i18n';
+
+
+// Array for routes the user doesn't have permission to access. No need to store over refresh.
+let bannedRoutes: undefined | string[] = undefined;
 
 export interface UserState {
   authenticated: boolean;
@@ -84,16 +90,45 @@ export const userGetters: GetterTree<UserState, RootState> = {
     return perm.some((permission) => state.permissions.includes(permission));
   },
   getAllowedTabs: (state, getters) => (tabs: Tab[]) => {
+
+    function getAllowed(route: RouteConfig): void {
+
+      if (!bannedRoutes) return;
+
+      // Check that the route has name and permissions
+      if (route.name && route?.meta?.permissions) {
+        // Find out routes that the user doesn't have permissions to access
+        if (
+          !route.meta.permissions.some((permission: string) =>
+            getters.hasPermission(permission),
+          )
+        ) {
+          // Add a banned route to the array
+          bannedRoutes.push(route.name);
+        }
+      }
+
+      // Check the child routes recursively
+      if (route.children) {
+        route.children.forEach((child: RouteConfig) => {
+          getAllowed(child);
+        });
+      }
+    }
+
+    if (!bannedRoutes) {
+      bannedRoutes = [];
+      routes.forEach((route) => {
+        getAllowed(route);
+      });
+    }
+
     // returns filtered array of objects based on the 'permission' attribute
     const filteredTabs = tabs.filter((tab: Tab) => {
-      if (!tab.permissions || tab.permissions.length === 0) {
-        // No permission needed for this tab
-        return true;
-      }
-      if (
-        tab.permissions.some((permission) => getters.hasPermission(permission))
-      ) {
-        // Return true if the user has at least one of the tabs permissions
+      const routeName = tab.to.name;
+
+      if (routeName && !bannedRoutes?.includes(routeName)) {
+        // Return true if the user has permission
         return true;
       }
       return false;
@@ -138,7 +173,7 @@ export const userGetters: GetterTree<UserState, RootState> = {
       (state.initializationStatus.software_token_init_status ===
         TokenInitStatus.INITIALIZED ||
         state.initializationStatus.software_token_init_status ===
-          TokenInitStatus.UNKNOWN)
+        TokenInitStatus.UNKNOWN)
     );
   },
 };
