@@ -40,10 +40,6 @@ import { mainTabs } from '@/global';
 import { routes } from '@/router';
 import i18n from '@/i18n';
 
-
-// Array for routes the user doesn't have permission to access. No need to store over refresh.
-let bannedRoutes: undefined | string[] = undefined;
-
 export interface UserState {
   authenticated: boolean;
   isSessionAlive: boolean | undefined;
@@ -52,6 +48,7 @@ export interface UserState {
   currentSecurityServer: SecurityServer | Record<string, unknown>;
   securityServerVersion: Version | Record<string, unknown>;
   initializationStatus: InitializationStatus | undefined;
+  bannedRoutes: undefined | string[];
 }
 
 export const getDefaultState = (): UserState => {
@@ -63,6 +60,7 @@ export const getDefaultState = (): UserState => {
     currentSecurityServer: {},
     securityServerVersion: {},
     initializationStatus: undefined,
+    bannedRoutes: undefined, // Array for routes the user doesn't have permission to access.
   };
 };
 
@@ -89,45 +87,12 @@ export const userGetters: GetterTree<UserState, RootState> = {
     // Return true if the user has at least one of the tabs permissions
     return perm.some((permission) => state.permissions.includes(permission));
   },
-  getAllowedTabs: (state, getters) => (tabs: Tab[]) => {
-
-    function getAllowed(route: RouteConfig): void {
-
-      if (!bannedRoutes) return;
-
-      // Check that the route has name and permissions
-      if (route.name && route?.meta?.permissions) {
-        // Find out routes that the user doesn't have permissions to access
-        if (
-          !route.meta.permissions.some((permission: string) =>
-            getters.hasPermission(permission),
-          )
-        ) {
-          // Add a banned route to the array
-          bannedRoutes.push(route.name);
-        }
-      }
-
-      // Check the child routes recursively
-      if (route.children) {
-        route.children.forEach((child: RouteConfig) => {
-          getAllowed(child);
-        });
-      }
-    }
-
-    if (!bannedRoutes) {
-      bannedRoutes = [];
-      routes.forEach((route) => {
-        getAllowed(route);
-      });
-    }
-
-    // returns filtered array of objects based on the 'permission' attribute
+  getAllowedTabs: (state) => (tabs: Tab[]) => {
+    // returns filtered array of Tab objects based on the 'permission' attribute
     const filteredTabs = tabs.filter((tab: Tab) => {
       const routeName = tab.to.name;
 
-      if (routeName && !bannedRoutes?.includes(routeName)) {
+      if (routeName && !state.bannedRoutes?.includes(routeName)) {
         // Return true if the user has permission
         return true;
       }
@@ -173,7 +138,7 @@ export const userGetters: GetterTree<UserState, RootState> = {
       (state.initializationStatus.software_token_init_status ===
         TokenInitStatus.INITIALIZED ||
         state.initializationStatus.software_token_init_status ===
-        TokenInitStatus.UNKNOWN)
+          TokenInitStatus.UNKNOWN)
     );
   },
 };
@@ -190,6 +155,38 @@ export const mutations: MutationTree<UserState> = {
   },
   setPermissions: (state, permissions: string[]) => {
     state.permissions = permissions;
+
+    // Function for checking routes recursively
+    function getAllowed(route: RouteConfig): void {
+      if (!state.bannedRoutes) return;
+
+      // Check that the route has name and permissions
+      if (route.name && route?.meta?.permissions) {
+        // Find out routes that the user doesn't have permissions to access
+        if (
+          !route.meta.permissions.some((permission: string) =>
+            permissions.includes(permission),
+          )
+        ) {
+          // Add a banned route to the array
+          state.bannedRoutes.push(route.name);
+        }
+      }
+
+      // Check the child routes recursively
+      if (route.children) {
+        route.children.forEach((child: RouteConfig) => {
+          getAllowed(child);
+        });
+      }
+    }
+
+    // Init banned routes array
+    state.bannedRoutes = [];
+    // Go through the route permissions
+    routes.forEach((route) => {
+      getAllowed(route);
+    });
   },
   setUsername: (state, username: string) => {
     state.username = username;

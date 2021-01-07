@@ -45,7 +45,7 @@
 
 <script lang="ts">
 import Vue from 'vue';
-import { Permissions, RouteName } from '@/global';
+import { RouteName } from '@/global';
 import { Tab } from '@/ui-types';
 
 export default Vue.extend({

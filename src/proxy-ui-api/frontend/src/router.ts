@@ -422,7 +422,11 @@ export const routes: RouteConfig[] = [
         components: {
           default: InitialConfiguration,
         },
-        beforeEnter: (to: Route, from: Route, next: NavigationGuardNext) => {
+        beforeEnter: (
+          to: Route,
+          from: Route,
+          next: NavigationGuardNext,
+        ): void => {
           // Coming from login is ok
           if (from.name === RouteName.Login) {
             next();
